@@ -1,0 +1,387 @@
+#INFO: **** input file is /projects/bamu3429/BENCHMARK/fresh_atoms/MRPT/vdz/atoms/O_0/mrpt.py ****
+import json
+from pyscf import gto,scf,mcscf, fci, lo, ci, cc
+from pyscf.scf import ROHF, UHF,ROKS
+import numpy as np
+import pandas as pd
+
+# THIS IS WERE IT STARTS ====================================
+
+df=json.load(open("../../../trail.json"))
+
+spins={'Sc':1, 'Ti':2, 'V':3, 'Cr':6, 'Mn':5, 'Fe':4, 'Cu':1}
+
+nd={'Sc':(1,0), 'Ti':(2,0), 'V':(3,0), 'Cr':(5,0), 'Mn':(5,0), 'Fe':(5,1), 'Cu':(5,5)}
+
+cas={'Sc':3, 'Ti':4, 'V':5, 'Cr':6, 'Mn':7, 'Fe':8, 'Cu':11}
+
+datacsv={}
+for nm in ['atom','charge','method','basis','pseudopotential','hf',
+           'totalenergy','totalenergy-stocherr','totalenergy-syserr']:
+  datacsv[nm]=[]
+
+basis='vdz'
+el='O'
+charge=0
+
+mol=gto.Mole()
+mol.ecp={}
+mol.basis={}
+mol.ecp[el]=gto.basis.parse_ecp(df[el]['ecp'])
+mol.basis[el]=gto.basis.parse(df[el][basis])
+mol.charge=charge
+mol.spin=2
+mol.build(atom="%s 0. 0. 0."%el,verbose=4)
+
+m=ROHF(mol)
+m.level_shift=1000.0
+#dm=m.from_chk("../../../../HF/atoms/"+el+basis+str(charge)+".chk")
+hf=m.kernel()#dm)
+m.analyze()
+
+from pyscf.shciscf import shci
+mc = shci.SHCISCF(m, 3, 4)
+#mc.fcisolver.conv_tol = 1e-14
+mc.fcisolver.mpiprefix="srun -n20"
+mc.fcisolver.num_thrds=12
+mc.verbose = 4
+cas=mc.kernel()[0]
+ 
+from pyscf.icmpspt import icmpspt
+pt=icmpspt.icmpspt(mc,rdmM=500, PTM=1000,\
+                          pttype="MRLCC",\
+                          third_order=True,\
+                          fully_ic=True,\
+                          do_dm4=True)
+
+datacsv['atom'].append(el)
+datacsv['charge'].append(charge)
+datacsv['method'].append('MRPT')
+datacsv['basis'].append(basis)
+datacsv['pseudopotential'].append('trail')
+datacsv['hf'].append(hf)
+datacsv['totalenergy'].append(cas+pt)
+datacsv['totalenergy-stocherr'].append(0.0)
+datacsv['totalenergy-syserr'].append(0.0)
+pd.DataFrame(datacsv).to_csv(el+".csv",index=False)
+
+#INFO: ******************** input file end ********************
+
+
+System: ('Linux', 'bnode0302.rc.int.colorado.edu', '3.10.0-514.41.1.el7.x86_64', '#1 SMP Wed Jan 17 10:26:16 EST 2018', 'x86_64', 'x86_64')  Threads 28
+Python 2.7.11 (default, Mar 22 2016, 01:42:54) 
+[GCC Intel(R) C++ gcc 4.8 mode]
+numpy 1.11.1  scipy 0.17.1
+Date: Wed Apr 18 12:23:23 2018
+PySCF version 1.4.6
+PySCF path  /projects/bamu3429/softwares/pyscf_uptodate/pyscf
+GIT ORIG_HEAD f3591ef22170896a4cdc2aadaa6f5da388ffcadb
+GIT HEAD      ref: refs/heads/master
+GIT master branch  1847583fb1d2472321833d3c71c8b7008e5fabf5
+
+[INPUT] VERBOSE 4
+[INPUT] num atoms = 1
+[INPUT] num electrons = 6
+[INPUT] charge = 0
+[INPUT] spin (= nelec alpha-beta = 2S) = 2
+[INPUT] symmetry False subgroup None
+[INPUT]  1 O      0.000000000000   0.000000000000   0.000000000000 AA    0.000000000000   0.000000000000   0.000000000000 Bohr
+[INPUT] ---------------- BASIS SET ---------------- 
+[INPUT] l, kappa, [nprim/nctr], expnt,             c_1 c_2 ...
+[INPUT] O
+[INPUT] 0    0    [10   /1   ]  57.663349         -0.002794
+                                35.726816         0.023976
+                                22.453757         -0.115974
+                                14.732301         0.288033
+                                9.739917          -0.274786
+                                5.042008          -0.083789
+                                2.157818          0.063778
+                                1.002916          0.410182
+                                0.421839          0.504044
+                                0.173041          0.172152
+[INPUT] 0    0    [1    /1   ]  0.222099             1
+[INPUT] 0    0    [1    /1   ]  0.08884              1
+[INPUT] 1    0    [10   /1   ]  52.47406          -0.000522
+                                32.138432         0.004857
+                                19.458579         -0.027749
+                                11.839344         0.074258
+                                7.91003           0.014369
+                                3.670858          0.153479
+                                1.53966           0.283685
+                                0.647119          0.358201
+                                0.267853          0.29559
+                                0.107198          0.104889
+[INPUT] 1    0    [1    /1   ]  0.252604             1
+[INPUT] 1    0    [1    /1   ]  0.101042             1
+[INPUT] 2    0    [1    /1   ]  1.223113             1
+[INPUT] 2    0    [1    /1   ]  0.489245             1
+nuclear repulsion = 0
+number of shells = 8
+number of NR pGTOs = 58
+number of NR cGTOs = 22
+basis = {'O': [[0, [57.663349, -0.002794], [35.726816, 0.023976], [22.453757, -0.115974], [14.732301, 0.288033], [9.739917, -0.274786], [5.042008, -0.083789], [2.157818, 0.063778], [1.002916, 0.410182], [0.421839, 0.504044], [0.173041, 0.172152]], [0, [0.222099, 1.0]], [0, [0.08884, 1.0]], [1, [52.47406, -0.000522], [32.138432, 0.004857], [19.458579, -0.027749], [11.839344, 0.074258], [7.91003, 0.014369], [3.670858, 0.153479], [1.53966, 0.283685], [0.647119, 0.358201], [0.267853, 0.29559], [0.107198, 0.104889]], [1, [0.252604, 1.0]], [1, [0.101042, 1.0]], [2, [1.223113, 1.0]], [2, [0.489245, 1.0]]]}
+ecp = {'O': [2, [[-1, [[], [[10.27717748, 6.0]], [[15.99566749, 1232.50197768], [10.46901775, -696.47008301], [14.6384801, -2654.22657081], [12.57591181, 2101.67732548]], [[7.77739102, 61.66306486]]]], [0, [[], [], [[12.39426073, -656683.37638839], [12.38126171, 657858.57667068], [8.57671033, 511.50098405], [9.89256508, -2579.54665641], [28.05641604, -57.68129584], [17.24753607, 970.30940152]], []]], [1, [[], [], [[14.78918914, -363027.24258186], [14.82014018, 361852.52314043], [22.89622221, -1300.20069256], [8.51331893, -181.96869573], [11.48609758, 2194.87589959], [27.22017524, 451.19906206]], []]]]]}
+CPU time:         3.72
+
+
+******** <class 'pyscf.scf.rohf.ROHF'> flags ********
+method = ROHF
+initial guess = minao
+damping factor = 0
+level shift factor = 1000.0
+DIIS = <class 'pyscf.scf.diis.CDIIS'>
+DIIS start cycle = 1
+DIIS space = 8
+SCF tol = 1e-09
+SCF gradient tol = None
+max. SCF cycles = 50
+direct_scf = True
+direct_scf_tol = 1e-13
+chkfile to save SCF result = /rc_scratch/bamu3429/tmp5klPiq
+max_memory 4000 MB (current use 81 MB)
+num. doubly occ = 2  num. singly occ = 2
+Set gradient conv threshold to 3.16228e-05
+init E= -15.1341721311697
+  HOMO = 332.929599012584  LUMO = 1000.18466435655
+cycle= 1 E= -15.6451689866167  delta_E= -0.511  |g|= 0.0925  |ddm|= 1.15
+  HOMO = 499.694643706848  LUMO = 1000.18463633244
+cycle= 2 E= -15.6451963546193  delta_E= -2.74e-05  |g|= 0.0922  |ddm|= 0.000537
+  HOMO = 499.732943375646  LUMO = 1000.18777961155
+cycle= 3 E= -15.645219148897  delta_E= -2.28e-05  |g|= 0.0919  |ddm|= 0.000472
+  HOMO = 499.732109360984  LUMO = 1000.18775499811
+cycle= 4 E= -15.6452427227992  delta_E= -2.36e-05  |g|= 0.0917  |ddm|= 0.000497
+  HOMO = 499.732789465982  LUMO = 1000.18779556876
+cycle= 5 E= -15.6452663949927  delta_E= -2.37e-05  |g|= 0.0915  |ddm|= 0.000504
+  HOMO = 499.733611239355  LUMO = 1000.18846119904
+cycle= 6 E= -15.6452893597123  delta_E= -2.3e-05  |g|= 0.0913  |ddm|= 0.000506
+  HOMO = 499.734097224697  LUMO = 1000.18879893703
+cycle= 7 E= -15.6453122883046  delta_E= -2.29e-05  |g|= 0.0911  |ddm|= 0.000513
+  HOMO = 499.734159501843  LUMO = 1000.18890985403
+cycle= 8 E= -15.6453350440044  delta_E= -2.28e-05  |g|= 0.0908  |ddm|= 0.000509
+  HOMO = 499.73411197691  LUMO = 1000.18886418585
+cycle= 9 E= -15.6453576981464  delta_E= -2.27e-05  |g|= 0.0906  |ddm|= 0.000508
+  HOMO = 499.734097539105  LUMO = 1000.18886109568
+cycle= 10 E= -15.6453802428621  delta_E= -2.25e-05  |g|= 0.0904  |ddm|= 0.000507
+  HOMO = 499.733688042857  LUMO = 1000.18866345451
+cycle= 11 E= -15.645402502376  delta_E= -2.23e-05  |g|= 0.0902  |ddm|= 0.000501
+  HOMO = 499.735059937456  LUMO = 1000.18874734289
+cycle= 12 E= -15.6454242530733  delta_E= -2.18e-05  |g|= 0.09  |ddm|= 0.000492
+  HOMO = 499.736888093174  LUMO = 1000.18850169864
+cycle= 13 E= -15.6454445956257  delta_E= -2.03e-05  |g|= 0.0898  |ddm|= 0.000461
+  HOMO = 499.735344848015  LUMO = 1000.18820567501
+cycle= 14 E= -15.645465647502  delta_E= -2.11e-05  |g|= 0.0896  |ddm|= 0.000473
+  HOMO = 499.732812634178  LUMO = 1000.1876895069
+cycle= 15 E= -15.6454883634777  delta_E= -2.27e-05  |g|= 0.0893  |ddm|= 0.000501
+  HOMO = 499.733920611145  LUMO = 1000.1889419694
+cycle= 16 E= -15.6455106520618  delta_E= -2.23e-05  |g|= 0.0891  |ddm|= 0.000508
+  HOMO = 499.734067791479  LUMO = 1000.18883710819
+cycle= 17 E= -15.645532560539  delta_E= -2.19e-05  |g|= 0.0889  |ddm|= 0.0005
+  HOMO = 499.733620692183  LUMO = 1000.18818422986
+cycle= 18 E= -15.6455547204925  delta_E= -2.22e-05  |g|= 0.0887  |ddm|= 0.000507
+  HOMO = 499.734345674332  LUMO = 1000.18874053252
+cycle= 19 E= -15.6455761627715  delta_E= -2.14e-05  |g|= 0.0885  |ddm|= 0.000492
+  HOMO = 499.733808999645  LUMO = 1000.18883504359
+cycle= 20 E= -15.6455978050937  delta_E= -2.16e-05  |g|= 0.0883  |ddm|= 0.000498
+  HOMO = 499.733999548041  LUMO = 1000.18844908633
+cycle= 21 E= -15.64561927772  delta_E= -2.15e-05  |g|= 0.0881  |ddm|= 0.00049
+  HOMO = 499.732502706297  LUMO = 1000.1885690414
+cycle= 22 E= -15.6456407242247  delta_E= -2.14e-05  |g|= 0.0878  |ddm|= 0.000488
+  HOMO = 499.732392255179  LUMO = 1000.18778217492
+cycle= 23 E= -15.6456624382571  delta_E= -2.17e-05  |g|= 0.0876  |ddm|= 0.000485
+  HOMO = 499.732149434808  LUMO = 1000.18814819427
+cycle= 24 E= -15.6456838792421  delta_E= -2.14e-05  |g|= 0.0874  |ddm|= 0.000484
+  HOMO = 499.732338701236  LUMO = 1000.1881532171
+cycle= 25 E= -15.6457051526471  delta_E= -2.13e-05  |g|= 0.0872  |ddm|= 0.000481
+  HOMO = 499.732290251911  LUMO = 1000.18830638442
+cycle= 26 E= -15.6457266993691  delta_E= -2.15e-05  |g|= 0.087  |ddm|= 0.000497
+  HOMO = 499.732386713732  LUMO = 1000.18852301105
+cycle= 27 E= -15.6457477582446  delta_E= -2.11e-05  |g|= 0.0868  |ddm|= 0.000488
+  HOMO = 499.732852388681  LUMO = 1000.18839925037
+cycle= 28 E= -15.6457685328612  delta_E= -2.08e-05  |g|= 0.0866  |ddm|= 0.000479
+  HOMO = 499.733283513062  LUMO = 1000.1886526061
+cycle= 29 E= -15.6457891424375  delta_E= -2.06e-05  |g|= 0.0864  |ddm|= 0.00048
+  HOMO = 499.73349310915  LUMO = 1000.18855043649
+cycle= 30 E= -15.645809671121  delta_E= -2.05e-05  |g|= 0.0862  |ddm|= 0.000479
+  HOMO = 499.732357430159  LUMO = 1000.18783793564
+cycle= 31 E= -15.6458305056698  delta_E= -2.08e-05  |g|= 0.0859  |ddm|= 0.00047
+  HOMO = 499.732171150352  LUMO = 1000.18828704265
+cycle= 32 E= -15.6458510637304  delta_E= -2.06e-05  |g|= 0.0857  |ddm|= 0.000471
+  HOMO = 499.732256467093  LUMO = 1000.1881797088
+cycle= 33 E= -15.6458715669531  delta_E= -2.05e-05  |g|= 0.0855  |ddm|= 0.00047
+  HOMO = 499.733034617971  LUMO = 1000.18862424295
+cycle= 34 E= -15.6458919814301  delta_E= -2.04e-05  |g|= 0.0853  |ddm|= 0.000481
+  HOMO = 499.733114724584  LUMO = 1000.18876691883
+cycle= 35 E= -15.6459119048946  delta_E= -1.99e-05  |g|= 0.0851  |ddm|= 0.000471
+  HOMO = 499.732326422214  LUMO = 1000.18842384245
+cycle= 36 E= -15.6459320257606  delta_E= -2.01e-05  |g|= 0.0849  |ddm|= 0.00047
+  HOMO = 499.732773070955  LUMO = 1000.18864821428
+cycle= 37 E= -15.6459519194101  delta_E= -1.99e-05  |g|= 0.0847  |ddm|= 0.000471
+  HOMO = 499.732884679806  LUMO = 1000.18863863351
+cycle= 38 E= -15.6459717146876  delta_E= -1.98e-05  |g|= 0.0845  |ddm|= 0.00047
+  HOMO = 499.731919628133  LUMO = 1000.18792676653
+cycle= 39 E= -15.6459918809443  delta_E= -2.02e-05  |g|= 0.0843  |ddm|= 0.000464
+  HOMO = 499.732572375543  LUMO = 1000.18843092812
+cycle= 40 E= -15.6460118219254  delta_E= -1.99e-05  |g|= 0.0841  |ddm|= 0.000473
+  HOMO = 499.732692303306  LUMO = 1000.18847427663
+cycle= 41 E= -15.6460316471168  delta_E= -1.98e-05  |g|= 0.0839  |ddm|= 0.000473
+  HOMO = 499.732824013712  LUMO = 1000.18849847174
+cycle= 42 E= -15.6460513865975  delta_E= -1.97e-05  |g|= 0.0837  |ddm|= 0.000473
+  HOMO = 499.732983478768  LUMO = 1000.18852616809
+cycle= 43 E= -15.6460707958614  delta_E= -1.94e-05  |g|= 0.0835  |ddm|= 0.000465
+  HOMO = 499.732324110842  LUMO = 1000.18846486395
+cycle= 44 E= -15.6460903649422  delta_E= -1.96e-05  |g|= 0.0833  |ddm|= 0.000468
+  HOMO = 499.73237363206  LUMO = 1000.18868879359
+cycle= 45 E= -15.6461095195949  delta_E= -1.92e-05  |g|= 0.0831  |ddm|= 0.000461
+  HOMO = 499.732778209182  LUMO = 1000.18851777906
+cycle= 46 E= -15.6461284938849  delta_E= -1.9e-05  |g|= 0.0829  |ddm|= 0.000453
+  HOMO = 499.731894171032  LUMO = 1000.18781039304
+cycle= 47 E= -15.6461479448256  delta_E= -1.95e-05  |g|= 0.0827  |ddm|= 0.000452
+  HOMO = 499.732195957756  LUMO = 1000.18833102382
+cycle= 48 E= -15.6461671048437  delta_E= -1.92e-05  |g|= 0.0825  |ddm|= 0.000458
+  HOMO = 499.73238567766  LUMO = 1000.18867830865
+cycle= 49 E= -15.6461859978889  delta_E= -1.89e-05  |g|= 0.0823  |ddm|= 0.000459
+  HOMO = 499.732470877012  LUMO = 1000.1886908639
+cycle= 50 E= -15.6462047702298  delta_E= -1.88e-05  |g|= 0.0821  |ddm|= 0.000458
+  HOMO = -0.30463942894528  LUMO = 0.184969760520024
+Extra cycle  E= -15.6501556043337  delta_E= -0.00395  |g|= 0.0475  |ddm|= 0.198
+SCF not converged.
+SCF energy = -15.6501556043337 after 50 cycles
+**** MO energy ****
+                Roothaan           | alpha              | beta
+MO #1   energy= -1.28120536346859  | -1.44375971499902  | -1.11865101189957  occ= 2
+MO #2   energy= -0.597338698318823 | -0.636836241437356 | -0.557841155200291 occ= 2
+MO #3   energy= -0.304639588291487 | -0.718057525616972 | 0.132253685218728  occ= 1
+MO #4   energy= -0.30463942894528  | -0.718059112632169 | 0.132254431109207  occ= 1
+MO #5   energy= 0.184969760520024  | 0.175723458153035  | 0.194216062888389  occ= 0
+MO #6   energy= 0.276491189174793  | 0.273069207372642  | 0.279913170976945  occ= 0
+MO #7   energy= 0.278320451902101  | 0.258493866901557  | 0.283305338761684  occ= 0
+MO #8   energy= 0.278320738402952  | 0.258494081136491  | 0.283305601426321  occ= 0
+MO #9   energy= 1.2991499938046    | 1.24131653058018   | 1.3569834572235    occ= 0
+MO #10  energy= 1.29914999404481   | 1.24131653098673   | 1.35698345716498   occ= 0
+MO #11  energy= 1.30500224460289   | 1.29045019882629   | 1.3195542903795    occ= 0
+MO #12  energy= 1.31086376868995   | 1.27768445631347   | 1.34404306573743   occ= 0
+MO #13  energy= 1.31086383130609   | 1.27768468599098   | 1.34404296915532   occ= 0
+MO #14  energy= 1.3109276254382    | 1.2400121921352    | 1.3732105894529    occ= 0
+MO #15  energy= 1.31092862895723   | 1.24001290557885   | 1.37321082588908   occ= 0
+MO #16  energy= 1.31423276624882   | 1.28877357161734   | 1.33969195872496   occ= 0
+MO #17  energy= 1.62743789568076   | 1.59454353603674   | 1.66033225534467   occ= 0
+MO #18  energy= 4.00338376760445   | 3.92022406560768   | 4.08654346971745   occ= 0
+MO #19  energy= 4.0033837676948    | 3.92022406568723   | 4.0865434697274    occ= 0
+MO #20  energy= 4.0275678164166    | 3.97943259810492   | 4.07570303472837   occ= 0
+MO #21  energy= 4.02756781812263   | 3.97943277280192   | 4.07570286344357   occ= 0
+MO #22  energy= 4.03573684801472   | 3.99942904552061   | 4.07204465056764   occ= 0
+ ** Mulliken pop on meta-lowdin orthogonal AOs  **
+ ** Mulliken pop  **
+pop of  0O 2s        1.99995
+pop of  0O 3s        0.00002
+pop of  0O 4s        0.00001
+pop of  0O 2px       0.99587
+pop of  0O 2py       0.99604
+pop of  0O 2pz       1.99953
+pop of  0O 3px       0.00101
+pop of  0O 3py       0.00101
+pop of  0O 3pz       0.00015
+pop of  0O 4px       0.00312
+pop of  0O 4py       0.00312
+pop of  0O 4pz       0.00015
+pop of  0O 3dxy      0.00000
+pop of  0O 3dyz      0.00000
+pop of  0O 3dz^2     0.00000
+pop of  0O 3dxz      0.00000
+pop of  0O 3dx2-y2    0.00000
+pop of  0O 4dxy      0.00000
+pop of  0O 4dyz      0.00000
+pop of  0O 4dz^2     0.00001
+pop of  0O 4dxz      0.00000
+pop of  0O 4dx2-y2    0.00000
+ ** Mulliken atomic charges  **
+charge of  0O =     -0.00000
+
+******** <class 'pyscf.mcscf.mc1step.CASSCF'> flags ********
+CAS (3e+1e, 3o), ncore = 1, nvir = 18
+max_cycle_macro = 50
+max_cycle_micro = 4
+conv_tol = 1e-07
+conv_tol_grad = None
+orbital rotation max_stepsize = 0.02
+augmented hessian ah_max_cycle = 30
+augmented hessian ah_conv_tol = 1e-12
+augmented hessian ah_linear dependence = 1e-14
+augmented hessian ah_level shift = 0
+augmented hessian ah_start_tol = 2.5
+augmented hessian ah_start_cycle = 3
+augmented hessian ah_grad_trust_region = 3
+kf_trust_region = 3
+kf_interval = 4
+ci_response_space = 4
+ci_grad_trust_region = 3
+with_dep4 0
+natorb = False
+canonicalization = True
+sorting_mo_energy = False
+chkfile = ./scratch/21682/tmp9osezy
+max_memory 4000 MB (current use 164 MB)
+internal_rotation = False
+
+******** SHCI flags ********
+executable             = /home/bamu3429/softwares/dice/Dice
+mpiprefix              = srun -n20
+scratchDirectory       = ./scratch/21682
+integralFile           = ./FCIDUMP
+configFile             = ./input.dat
+outputFile             = ./output.dat
+maxIter                = 6
+sweep_iter             = []
+sweep_epsilon          = []
+nPTiter                = 0
+Stochastic             = True
+fullrestart            = False
+restart                = False
+num_thrds              = 12
+memory                 = None
+
+CASCI E = -15.6501556043332  S^2 = 2.0000000
+Set conv_tol_grad to 0.000316228
+macro iter 1 (9 JK  3 micro), CASSCF E = -15.6508986029103  dE = -0.00074299858  S^2 = 2.0000000
+               |grad[o]|=0.0475  |grad[c]|= None  |ddm|=    0
+macro iter 2 (3 JK  1 micro), CASSCF E = -15.6508986157519  dE = -1.2841559e-08  S^2 = 2.0000000
+               |grad[o]|=0.000188  |grad[c]|= None  |ddm|=    0
+1-step CASSCF converged in 2 macro (12 JK 4 micro) steps
+CASSCF canonicalization
+CASSCF energy = -15.6508986157519
+
+
+--------------------------------------------------
+                 ICMPSPT CALCULATION              
+--------------------------------------------------
+
+Perturbation type: MRLCC
+With fully internally contracted scheme
+With third order correction
+
+Preparing necessary RDMs
+......production of RDMs took      11.53 sec
+Reading binary 4RDM from DICE
+......reading the RDM took          0.05 sec
+
+(GOOD) Trace 4RDM:     24.0 =    4*    3*    2*    1
+(GOOD) Trace 3RDM:     24.0 =    4*    3*    2
+(GOOD) Trace 2RDM:     12.0 =    4*    3
+(GOOD) Trace 1RDM:      4.0 =    4
+
+Producing the integrals
+......production of INT took       0.52 sec
+
+Energy_core =   -8.79965028
+Energy      =  -15.65089862
+
+WARNING: Have to use natural orbitals from CAASCF
+         offdiagonal elements:    0.38700023
+
+Basic ingredients written to int/
+......savings of INGREDIENTS took       7.41 sec
+
+Second-order:
+perturber CCVV --        -0.007548595
+perturber CCAV --        -0.002097925
+perturber ACVV --        -0.022913939
